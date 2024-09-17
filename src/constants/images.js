@@ -40,6 +40,7 @@ import angular from '../assets/angular.png';
 import spring from '../assets/spring.png';
 import aws from '../assets/aws.png';
 import profile2 from '../assets/profile2.png';
+import  CV  from '../assets/CV.pdf';
 
 export const images = {
   email,
@@ -79,5 +80,7 @@ export const images = {
   angular,
   spring,
   aws,
-  profile2
+  profile2,
+  CV
+
 };
