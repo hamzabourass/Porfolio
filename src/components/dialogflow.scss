@@ -1,9 +1,8 @@
 // DialogflowMessenger.scss
 .dialogflow-container {
-    // Custom button styling
     .chat-trigger {
       position: fixed;
-      bottom: 100px; // Position above the default chat button
+      bottom: 100px;
       right: 20px;
       padding: 12px 24px;
       background-color: #2196f3;
@@ -21,14 +20,12 @@
       }
     }
   
-    // Dialogflow messenger styling
     df-messenger {
       z-index: 999;
       position: fixed;
       bottom: 16px;
       right: 16px;
   
-      // Customize chat window
       --df-messenger-bot-message: #2196f3;
       --df-messenger-button-titlebar-color: #2196f3;
       --df-messenger-chat-background-color: #fafafa;
