@@ -21,3 +21,14 @@
   margin: 0;
   scroll-behavior: smooth;
 }
+df-messenger {
+  z-index: 999;
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+}
+
+/* Hide the default error overlay */
+iframe[style*="position: fixed;"] {
+  display: none !important;
+}
