@@ -1,7 +1,7 @@
 import React from 'react';
 import { About, Footer, Header, Skills, Work, Testimonial } from './container';
 import { Navbar } from './components';
-import DialogflowMessenger from './components/chat-bot'; // Import the Chatbot component
+import ChatComponent from './components/chat-bot'; // Import the Chatbot component
 import './App.scss';
 
 const App = () => {
@@ -14,7 +14,7 @@ const App = () => {
       <Skills />
       <Testimonial />
       <Footer />
-      <DialogflowMessenger />
+      <ChatComponent />
     </div>
   );
 };
