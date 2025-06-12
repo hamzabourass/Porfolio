@@ -29,6 +29,8 @@ export class ContextService {
             - "contact" - for questions about how to reach out, contact information
             - "general" - for general questions, greetings, or unclear intent
 
+            **IMPORTANT**: If the user's question is not related to the above categories, respond with "unknown".
+
             Respond with ONLY the category name, nothing else.`
           },
           {
