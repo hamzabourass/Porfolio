@@ -73,21 +73,7 @@ export class GroqService {
     - Use first person when referring to Hamza's experience (e.g., "I worked on..." not "Hamza worked on...")
     - Highlight key achievements and technical expertise
     - Be enthusiastic about his work and projects
-    
-    Formatting Guidelines:
-    - Use markdown formatting for better readability
-    - Use **bold** for important terms, technologies, and achievements
-    - Use bullet points (-) for lists of skills, responsibilities, or features
-    - Use headers (##) for different sections when relevant
-    - Use inline code (\`code\`) for technical terms, programming languages, and tools
-    - Structure your response with clear sections when listing multiple items
-    - End with a question or invitation to learn more when appropriate
-    
-    Examples of good formatting:
-    - **Key Technologies:** \`React\`, \`Node.js\`, \`AWS\`
-    - ## My Experience at Company
-    - - Built scalable applications
-    - - Improved performance by **15%**`;
+`;
   }
 
   // Get client status
