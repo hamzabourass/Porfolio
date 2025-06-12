@@ -46,7 +46,7 @@ export const portfolioData = {
 
   projects: [
     {
-      name: "FeverTokens - AI Tool Suite",
+      name: "AI Tool Suite",
       description: "Created an advanced AI tool suite for automated CV analysis, conversation summarization, and insights extraction, harnessing the power of LangChain and OpenAI with a cutting-edge cloud-native architecture.",
       technologies: ["LangChain", "OpenAI", "Next.js", "Puppeteer", "AWS S3", "Prisma/Neon", "Tailwind", "shadcn", "Google Auth"],
       category: "AI/ML"
