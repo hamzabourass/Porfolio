@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, X, MessageSquare, Sparkles, Zap, Code, Briefcase, Mail, Phone, GraduationCap, Globe } from 'lucide-react';
+import { Send, Bot, User, X, MessageSquare, Sparkles, Zap, Code, Briefcase, Mail, Phone, GraduationCap, Globe, ExternalLink, ArrowRight } from 'lucide-react';
 import { GroqService } from '../services/groqService';
 import { ContextService } from '../services/contextService';
 import MarkdownMessage from './ui/MarkdownMessage';
 
-const ChatComponent = () => {
+const ChatComponent = ({ onNavigate }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +31,36 @@ const ChatComponent = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Navigation suggestions based on categories
+  const getNavigationSuggestion = (categories) => {
+    const suggestions = [];
+    
+    if (categories.includes('projects')) {
+      suggestions.push({ section: 'work', label: 'View My Projects', icon: <Briefcase className="h-4 w-4" /> });
+    }
+    if (categories.includes('skills')) {
+      suggestions.push({ section: 'skills', label: 'See All Skills', icon: <Code className="h-4 w-4" /> });
+    }
+    if (categories.includes('experience')) {
+      suggestions.push({ section: 'skills', label: 'View Experience', icon: <Briefcase className="h-4 w-4" /> });
+    }
+    if (categories.includes('contact')) {
+      suggestions.push({ section: 'contact', label: 'Contact Me', icon: <Mail className="h-4 w-4" /> });
+    }
+    if (categories.includes('personal') || categories.includes('general')) {
+      suggestions.push({ section: 'about', label: 'Learn More About Me', icon: <User className="h-4 w-4" /> });
+    }
+    
+    return suggestions.slice(0, 2); // Max 2 suggestions
+  };
+
+  const handleNavigation = (section) => {
+    if (onNavigate) {
+      onNavigate(section);
+      setIsOpen(false); // Close chat when navigating
+    }
+  };
+
   const handleSubmit = async () => {
     if (!input.trim() || isLoading || !groqService.current.isInitialized) return;
 
@@ -41,10 +71,10 @@ const ChatComponent = () => {
     setIsTyping(true);
 
     try {
-      // Step 1: Classify the query and select relevant context - UPDATED for multi-category
+      // Step 1: Classify the query and select relevant context
       const { context, categories } = await contextService.current.classifyAndSelectContext(input);
       
-      // Step 2: Generate response with selected context - UPDATED for multi-category
+      // Step 2: Generate response with selected context
       const conversationHistory = [...messages, userMessage];
       
       // Simulate typing delay for better UX
@@ -57,18 +87,52 @@ const ChatComponent = () => {
         role: 'assistant', 
         content: response, 
         timestamp: new Date(),
-        categories // UPDATED: Store categories array instead of single category
+        categories
       };
       setMessages(prev => [...prev, botMessage]);
+
     } catch (error) {
       console.error('Error in chat:', error);
       setIsTyping(false);
+      
+      let userFriendlyMessage;
+      
+      // Handle specific error types thrown by GroqService
+      switch (error.message) {
+        case 'RATE_LIMIT_EXCEEDED':
+          userFriendlyMessage = "I'm experiencing high usage right now. Please try again in about 30 minutes, or feel free to explore my portfolio sections directly for detailed information about my work!";
+          break;
+          
+        case 'NETWORK_ERROR':
+          userFriendlyMessage = "I'm having trouble connecting right now. Please check your internet connection and try again.";
+          break;
+          
+        case 'AUTH_ERROR':
+          userFriendlyMessage = "I'm currently unavailable due to authentication issues. Please try again later or contact me directly through the portfolio.";
+          break;
+          
+        case 'API_ERROR':
+          userFriendlyMessage = "I'm having a small technical hiccup. Please try asking your question again, or explore the relevant sections of my portfolio!";
+          break;
+          
+        default:
+          // Fallback for any unexpected errors
+          if (error.message.includes('API key')) {
+            userFriendlyMessage = "I'm currently unavailable. Please try again later or contact me directly through the portfolio.";
+          } else {
+            userFriendlyMessage = "I'm temporarily unavailable. Please try again in a moment, or explore my portfolio sections for detailed information about my work!";
+          }
+          break;
+      }
+      
       const errorMessage = { 
         role: 'assistant', 
-        content: `I encountered an error: ${error.message}. Please try again.`,
-        timestamp: new Date()
+        content: userFriendlyMessage,
+        timestamp: new Date(),
+        isError: true
       };
       setMessages(prev => [...prev, errorMessage]);
+      
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +150,7 @@ const ChatComponent = () => {
     setTimeout(() => handleSubmit(), 100);
   };
 
-  // UPDATED: Enhanced category icons with more categories
+  // Enhanced category icons with more categories
   const getCategoryIcon = (category) => {
     switch(category) {
       case 'skills': return <Code className="h-4 w-4" />;
@@ -100,13 +164,13 @@ const ChatComponent = () => {
     }
   };
 
-  // UPDATED: Function to render multiple category badges
+  // Function to render multiple category badges
   const renderCategoryBadges = (categories) => {
     if (!categories || categories.length === 0) return null;
     
     return (
       <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-gray-100">
-        {categories.slice(0, 3).map((category, index) => ( // Show max 3 badges
+        {categories.slice(0, 3).map((category, index) => (
           <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50">
             <div className="p-0.5">
               {getCategoryIcon(category)}
@@ -126,7 +190,6 @@ const ChatComponent = () => {
   };
 
   const status = groqService.current.getStatus();
-  // UPDATED: Better quick prompts for multi-category testing
   const quickPrompts = contextService.current?.getQuickPrompts() || [
     "Tell me about yourself and your background",
     "What's your experience and key projects?",
@@ -271,22 +334,26 @@ const ChatComponent = () => {
                         message.role === 'user' 
                           ? 'rounded-br-sm' 
                           : 'rounded-bl-sm'
-                      }`}
+                      } ${message.isError ? 'border-yellow-200' : ''}`}
                       style={{
                         background: message.role === 'user' 
                           ? 'linear-gradient(135deg, var(--secondary-color) 0%, #4c63d2 100%)'
-                          : 'white',
+                          : message.isError 
+                            ? '#fefce8' // Light yellow background for errors
+                            : 'white',
                         color: message.role === 'user' 
                           ? 'white'
-                          : 'var(--black-color)',
+                          : message.isError
+                            ? '#92400e' // Brown text for errors
+                            : 'var(--black-color)',
                         boxShadow: message.role === 'user'
                           ? '0 4px 12px rgba(49, 59, 172, 0.15)'
                           : '0 2px 8px rgba(0, 0, 0, 0.06)',
                         border: message.role === 'assistant' ? '1px solid rgba(0, 0, 0, 0.06)' : 'none'
                       }}
                     >
-                      {/* UPDATED: Multi-category badges for assistant messages */}
-                      {message.role === 'assistant' && message.categories && (
+                      {/* Category badges - don't show for error messages */}
+                      {message.role === 'assistant' && message.categories && !message.isError && (
                         renderCategoryBadges(message.categories)
                       )}
                       
@@ -299,6 +366,39 @@ const ChatComponent = () => {
                               content={message.content} 
                               isUser={message.role === 'user'} 
                             />
+                            
+                            {/* Navigation suggestions - don't show for error messages */}
+                            {message.categories && !message.isError && getNavigationSuggestion(message.categories).length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <div className="text-xs text-gray-500 mb-2 font-medium">Explore More:</div>
+                                <div className="flex flex-wrap gap-2">
+                                  {getNavigationSuggestion(message.categories).map((suggestion, idx) => (
+                                    <button
+                                      key={idx}
+                                      onClick={() => handleNavigation(suggestion.section)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 hover:shadow-sm hover:scale-[1.02]"
+                                      style={{
+                                        borderColor: 'var(--secondary-color)',
+                                        color: 'var(--secondary-color)',
+                                        background: 'rgba(49, 59, 172, 0.05)'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.target.style.background = 'var(--secondary-color)';
+                                        e.target.style.color = 'white';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.target.style.background = 'rgba(49, 59, 172, 0.05)';
+                                        e.target.style.color = 'var(--secondary-color)';
+                                      }}
+                                    >
+                                      {suggestion.icon}
+                                      {suggestion.label}
+                                      <ArrowRight className="h-3 w-3" />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
