@@ -5,7 +5,7 @@ export const portfolioData = {
     phone: "+212 7 66 71 26 23",
     email: "hamzabrse333@gmail.com",
     linkedin: "Hamza Bouras - Link: https://www.linkedin.com/in/hamza-1-bouras/",
-    Github: "Hamzabourass",
+    Github: "Hamzabourass - Link: https://github.com/hamzabourass",
     summary: "Software engineer with a background in computer engineering and networks, specialized in MIAGE. Passionate about software development and eager to leverage my skills to drive innovative projects forward."
   },
 
