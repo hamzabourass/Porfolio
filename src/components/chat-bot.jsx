@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, X, MessageSquare, Sparkles, Zap, Code, Briefcase, Mail, Phone } from 'lucide-react';
+import { Send, Bot, User, X, MessageSquare, Sparkles, Zap, Code, Briefcase, Mail, Phone, GraduationCap, Globe } from 'lucide-react';
 import { GroqService } from '../services/groqService';
 import { ContextService } from '../services/contextService';
 import MarkdownMessage from './ui/MarkdownMessage';
@@ -41,23 +41,23 @@ const ChatComponent = () => {
     setIsTyping(true);
 
     try {
-      // Step 1: Classify the query and select relevant context
-      const { context, category } = await contextService.current.classifyAndSelectContext(input);
+      // Step 1: Classify the query and select relevant context - UPDATED for multi-category
+      const { context, categories } = await contextService.current.classifyAndSelectContext(input);
       
-      // Step 2: Generate response with selected context
+      // Step 2: Generate response with selected context - UPDATED for multi-category
       const conversationHistory = [...messages, userMessage];
       
       // Simulate typing delay for better UX
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const response = await groqService.current.generateResponse(conversationHistory, context, category);
+      const response = await groqService.current.generateResponse(conversationHistory, context, categories);
       
       setIsTyping(false);
       const botMessage = { 
         role: 'assistant', 
         content: response, 
         timestamp: new Date(),
-        category
+        categories // UPDATED: Store categories array instead of single category
       };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
@@ -86,20 +86,51 @@ const ChatComponent = () => {
     setTimeout(() => handleSubmit(), 100);
   };
 
+  // UPDATED: Enhanced category icons with more categories
   const getCategoryIcon = (category) => {
     switch(category) {
-      case 'technical': return <Code className="h-4 w-4" />;
+      case 'skills': return <Code className="h-4 w-4" />;
       case 'projects': return <Briefcase className="h-4 w-4" />;
       case 'contact': return <Mail className="h-4 w-4" />;
+      case 'experience': return <Briefcase className="h-4 w-4" />;
+      case 'education': return <GraduationCap className="h-4 w-4" />;
+      case 'languages': return <Globe className="h-4 w-4" />;
+      case 'personal': return <User className="h-4 w-4" />;
       default: return <MessageSquare className="h-4 w-4" />;
     }
   };
 
+  // UPDATED: Function to render multiple category badges
+  const renderCategoryBadges = (categories) => {
+    if (!categories || categories.length === 0) return null;
+    
+    return (
+      <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-gray-100">
+        {categories.slice(0, 3).map((category, index) => ( // Show max 3 badges
+          <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50">
+            <div className="p-0.5">
+              {getCategoryIcon(category)}
+            </div>
+            <span className="text-xs font-medium text-gray-600 capitalize">
+              {category}
+            </span>
+          </div>
+        ))}
+        {categories.length > 3 && (
+          <span className="text-xs text-gray-400">
+            +{categories.length - 3} more
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const status = groqService.current.getStatus();
+  // UPDATED: Better quick prompts for multi-category testing
   const quickPrompts = contextService.current?.getQuickPrompts() || [
-    "Tell me about your experience",
-    "What projects have you worked on?",
-    "What are your technical skills?",
+    "Tell me about yourself and your background",
+    "What's your experience and key projects?",
+    "What are your technical skills and expertise?",
     "How can I contact you?"
   ];
 
@@ -254,16 +285,9 @@ const ChatComponent = () => {
                         border: message.role === 'assistant' ? '1px solid rgba(0, 0, 0, 0.06)' : 'none'
                       }}
                     >
-                      {/* Category indicator for assistant messages */}
-                      {message.role === 'assistant' && message.category && (
-                        <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-gray-100">
-                          <div className="p-1 rounded bg-gray-50">
-                            {getCategoryIcon(message.category)}
-                          </div>
-                          <span className="text-xs font-medium text-gray-500 capitalize">
-                            {message.category}
-                          </span>
-                        </div>
+                      {/* UPDATED: Multi-category badges for assistant messages */}
+                      {message.role === 'assistant' && message.categories && (
+                        renderCategoryBadges(message.categories)
                       )}
                       
                       <div className="text-sm leading-relaxed">
