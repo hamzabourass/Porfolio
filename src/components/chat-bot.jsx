@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, X, MessageSquare, Sparkles, Zap, Code, Briefcase, Mail, Phone, GraduationCap, Globe, ExternalLink, ArrowRight, Clock, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, X, MessageSquare, Sparkles, Code, Briefcase, Mail, GraduationCap, Globe, ArrowRight } from 'lucide-react';
 import { GroqService } from '../services/groqService';
 import { ContextService } from '../services/contextService';
 import MarkdownMessage from './ui/MarkdownMessage';
@@ -11,97 +11,16 @@ const ChatComponent = ({ onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   
-  const [messageCount, setMessageCount] = useState(0);
-  const [dailyMessageCount, setDailyMessageCount] = useState(0);
-  const [lastResetDate, setLastResetDate] = useState(null);
-  const [isLimitReached, setIsLimitReached] = useState(false);
-  
   const messagesEndRef = useRef(null);
   const groqService = useRef(new GroqService());
   const contextService = useRef(null);
-
-  const MESSAGE_LIMITS = {
-    SESSION: 10,      
-    DAILY: 20,        
-    RESET_HOUR: 0
-  };
 
   useEffect(() => {
     const success = groqService.current.initialize();
     if (success) {
       contextService.current = new ContextService(groqService.current.groq);
     }
-    
-    loadMessageLimits();
   }, []);
-
-  const loadMessageLimits = () => {
-    try {
-      const savedData = localStorage.getItem('hamza_chat_limits');
-      if (savedData) {
-        const { dailyCount, lastReset, sessionCount } = JSON.parse(savedData);
-        
-        const today = new Date().toDateString();
-        if (lastReset !== today) {
-          setDailyMessageCount(0);
-          setLastResetDate(today);
-          saveMessageLimits(0, today, 0);
-        } else {
-          setDailyMessageCount(dailyCount || 0);
-          setLastResetDate(lastReset);
-          setMessageCount(sessionCount || 0);
-        }
-      } else {
-        const today = new Date().toDateString();
-        setLastResetDate(today);
-        saveMessageLimits(0, today, 0);
-      }
-    } catch (error) {
-      console.error('Error loading message limits:', error);
-    }
-  };
-
-  const saveMessageLimits = (dailyCount, resetDate, sessionCount) => {
-    try {
-      const data = {
-        dailyCount,
-        lastReset: resetDate,
-        sessionCount,
-        timestamp: Date.now()
-      };
-      localStorage.setItem('hamza_chat_limits', JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving message limits:', error);
-    }
-  };
-
-  const canSendMessage = () => {
-    return messageCount < MESSAGE_LIMITS.SESSION && dailyMessageCount < MESSAGE_LIMITS.DAILY;
-  };
-
-  const getRemainingMessages = () => {
-    const sessionRemaining = MESSAGE_LIMITS.SESSION - messageCount;
-    const dailyRemaining = MESSAGE_LIMITS.DAILY - dailyMessageCount;
-    return {
-      session: Math.max(0, sessionRemaining),
-      daily: Math.max(0, dailyRemaining),
-      canSend: canSendMessage()
-    };
-  };
-
-  const incrementMessageCount = () => {
-    const newSessionCount = messageCount + 1;
-    const newDailyCount = dailyMessageCount + 1;
-    
-    setMessageCount(newSessionCount);
-    setDailyMessageCount(newDailyCount);
-    
-    saveMessageLimits(newDailyCount, lastResetDate, newSessionCount);
-    
-    if (!canSendMessage()) {
-      setIsLimitReached(true);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -141,27 +60,6 @@ const ChatComponent = ({ onNavigate }) => {
   };
 
   const handleSubmit = async () => {
-    if (!canSendMessage()) {
-      const remaining = getRemainingMessages();
-      let limitMessage;
-      
-      if (remaining.session <= 0) {
-        limitMessage = `You've reached your session limit of ${MESSAGE_LIMITS.SESSION} messages. Please refresh the page to start a new session, or explore my portfolio sections directly!`;
-      } else if (remaining.daily <= 0) {
-        limitMessage = `You've reached your daily limit of ${MESSAGE_LIMITS.DAILY} messages. Please try again tomorrow, or feel free to explore my portfolio sections for detailed information!`;
-      }
-      
-      const limitReachedMessage = {
-        role: 'assistant',
-        content: limitMessage,
-        timestamp: new Date(),
-        isError: true,
-        isLimit: true
-      };
-      setMessages(prev => [...prev, limitReachedMessage]);
-      return;
-    }
-
     if (!input.trim() || isLoading || !groqService.current.isInitialized) return;
 
     const userMessage = { role: 'user', content: input, timestamp: new Date() };
@@ -169,8 +67,6 @@ const ChatComponent = ({ onNavigate }) => {
     setInput('');
     setIsLoading(true);
     setIsTyping(true);
-
-    let shouldCountMessage = true;
 
     try {
       const { context, categories } = await contextService.current.classifyAndSelectContext(input);
@@ -189,10 +85,6 @@ const ChatComponent = ({ onNavigate }) => {
       };
       setMessages(prev => [...prev, botMessage]);
 
-      if (shouldCountMessage) {
-        incrementMessageCount();
-      }
-
     } catch (error) {
       console.error('Error in chat:', error);
       setIsTyping(false);
@@ -202,27 +94,21 @@ const ChatComponent = ({ onNavigate }) => {
       switch (error.message) {
         case 'RATE_LIMIT_EXCEEDED':
           userFriendlyMessage = "I'm experiencing high usage right now. Please try again in about 30 minutes, or feel free to explore my portfolio sections directly for detailed information about my work!";
-          shouldCountMessage = false;
           break;
         case 'NETWORK_ERROR':
           userFriendlyMessage = "I'm having trouble connecting right now. Please check your internet connection and try again.";
-          shouldCountMessage = false; 
           break;
         case 'AUTH_ERROR':
           userFriendlyMessage = "I'm currently unavailable due to authentication issues. Please try again later or contact me directly through the portfolio.";
-          shouldCountMessage = false;
           break;
         case 'API_ERROR':
           userFriendlyMessage = "I'm having a small technical hiccup. Please try asking your question again, or explore the relevant sections of my portfolio!";
-          shouldCountMessage = false; 
           break;
         default:
           if (error.message.includes('API key')) {
             userFriendlyMessage = "I'm currently unavailable. Please try again later or contact me directly through the portfolio.";
-            shouldCountMessage = false;
           } else {
             userFriendlyMessage = "I'm temporarily unavailable. Please try again in a moment, or explore my portfolio sections for detailed information about my work!";
-            shouldCountMessage = false;
           }
           break;
       }
@@ -235,10 +121,6 @@ const ChatComponent = ({ onNavigate }) => {
         isRateLimit: error.message === 'RATE_LIMIT_EXCEEDED' 
       };
       setMessages(prev => [...prev, errorMessage]);
-      
-      if (shouldCountMessage) {
-        incrementMessageCount();
-      }
       
     } finally {
       setIsLoading(false);
@@ -253,10 +135,6 @@ const ChatComponent = ({ onNavigate }) => {
   };
 
   const handleQuickPrompt = (prompt) => {
-    if (!canSendMessage()) {
-      handleSubmit(); 
-      return;
-    }
     setInput(prompt);
     setTimeout(() => handleSubmit(), 100);
   };
@@ -298,38 +176,7 @@ const ChatComponent = ({ onNavigate }) => {
     );
   };
 
-  const MessageLimitIndicator = () => {
-    const remaining = getRemainingMessages();
-    
-    if (!remaining.canSend) {
-      return (
-        <div className="px-4 py-2 bg-red-50 border-t border-red-100 text-center">
-          <div className="flex items-center justify-center gap-2 text-red-600">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">Message limit reached</span>
-          </div>
-        </div>
-      );
-    }
-    
-    if (remaining.session <= 3 || remaining.daily <= 5) {
-      return (
-        <div className="px-4 py-2 bg-yellow-50 border-t border-yellow-100 text-center">
-          <div className="flex items-center justify-center gap-2 text-yellow-600">
-            <Clock className="h-4 w-4" />
-            <span className="text-xs">
-              {remaining.session} messages left this session • {remaining.daily} left today
-            </span>
-          </div>
-        </div>
-      );
-    }
-    
-    return null;
-  };
-
   const status = groqService.current.getStatus();
-  const remaining = getRemainingMessages();
   const quickPrompts = contextService.current?.getQuickPrompts() || [
     "Tell me about yourself and your background",
     "What's your experience and key projects?", 
@@ -355,13 +202,6 @@ const ChatComponent = ({ onNavigate }) => {
             <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <Sparkles className="absolute top-2 right-2 h-3 w-3 text-white/60 animate-pulse" />
             <MessageSquare className="h-7 w-7 text-white relative z-10 group-hover:scale-110 transition-transform duration-200" />
-            
-            {/* Message count badge */}
-            {messageCount > 0 && (
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                {Math.min(messageCount, 9)}
-              </div>
-            )}
           </button>
         </div>
       )}
@@ -377,7 +217,7 @@ const ChatComponent = ({ onNavigate }) => {
             animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
-          {/* Header with message count */}
+          {/* Header */}
           <div 
             className="p-5 relative overflow-hidden border-b"
             style={{ 
@@ -404,7 +244,7 @@ const ChatComponent = ({ onNavigate }) => {
                   <div className="flex items-center space-x-2 mt-0.5">
                     <div className={`w-2 h-2 rounded-full ${status.isInitialized ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                     <span className="text-xs" style={{ color: 'var(--gray-color)' }}>
-                      {status.isInitialized ? `${remaining.session}/${MESSAGE_LIMITS.SESSION} messages` : 'Connecting...'}
+                      {status.isInitialized ? 'Active' : 'Connecting...'}
                     </span>
                   </div>
                 </div>
@@ -432,11 +272,8 @@ const ChatComponent = ({ onNavigate }) => {
                     <h4 className="font-semibold mb-2 text-xl" style={{ color: 'var(--black-color)' }}>
                       Hi! I'm here to help 👋
                     </h4>
-                    <p className="text-sm mb-2" style={{ color: 'var(--gray-color)' }}>
+                    <p className="text-sm mb-6" style={{ color: 'var(--gray-color)' }}>
                       Ask me anything about Hamza's experience, projects, or skills.
-                    </p>
-                    <p className="text-xs mb-6" style={{ color: 'var(--gray-color)' }}>
-                      You have {MESSAGE_LIMITS.SESSION} messages per session • {MESSAGE_LIMITS.DAILY} per day
                     </p>
                     
                     {/* Quick Action Buttons */}
@@ -445,8 +282,7 @@ const ChatComponent = ({ onNavigate }) => {
                         <button
                           key={index}
                           onClick={() => handleQuickPrompt(prompt)}
-                          disabled={!remaining.canSend}
-                          className="p-3 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] border bg-white hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-3 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] border bg-white hover:shadow-md"
                           style={{
                             borderColor: 'rgba(0, 0, 0, 0.08)',
                             color: 'var(--black-color)'
@@ -485,17 +321,17 @@ const ChatComponent = ({ onNavigate }) => {
                         message.role === 'user' 
                           ? 'rounded-br-sm' 
                           : 'rounded-bl-sm'
-                      } ${message.isError ? 'border-yellow-200' : ''} ${message.isLimit ? 'border-red-200' : ''}`}
+                      } ${message.isError ? 'border-yellow-200' : ''}`}
                       style={{
                         background: message.role === 'user' 
                           ? 'linear-gradient(135deg, var(--secondary-color) 0%, #4c63d2 100%)'
                           : message.isError 
-                            ? message.isLimit ? '#fef2f2' : '#fefce8'
+                            ? '#fefce8' // Light yellow background for errors
                             : 'white',
                         color: message.role === 'user' 
                           ? 'white'
                           : message.isError
-                            ? message.isLimit ? '#991b1b' : '#92400e'
+                            ? '#92400e' // Brown text for errors
                             : 'var(--black-color)',
                         boxShadow: message.role === 'user'
                           ? '0 4px 12px rgba(49, 59, 172, 0.15)'
@@ -604,9 +440,6 @@ const ChatComponent = ({ onNavigate }) => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Limit Indicator */}
-            <MessageLimitIndicator />
-
             {/* Input Area */}
             <div className="p-4 border-t bg-white" style={{ borderColor: 'rgba(0, 0, 0, 0.06)' }}>
               <div className="flex items-center space-x-2">
@@ -616,35 +449,27 @@ const ChatComponent = ({ onNavigate }) => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder={
-                      !remaining.canSend 
-                        ? "Message limit reached" 
-                        : status.isInitialized 
-                          ? "Type your message..." 
-                          : "API key required..."
-                    }
-                    className="w-full px-4 py-3 pr-12 rounded-2xl outline-none transition-all duration-200 text-sm border-2 bg-gray-50 focus:bg-white disabled:opacity-50"
+                    placeholder={status.isInitialized ? "Type your message..." : "API key required..."}
+                    className="w-full px-4 py-3 pr-12 rounded-2xl outline-none transition-all duration-200 text-sm border-2 bg-gray-50 focus:bg-white"
                     style={{ 
                       borderColor: 'transparent',
                       color: 'var(--black-color)'
                     }}
                     onFocus={(e) => {
-                      if (remaining.canSend) {
-                        e.target.style.borderColor = 'var(--secondary-color)';
-                      }
+                      e.target.style.borderColor = 'var(--secondary-color)';
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = 'transparent';
                     }}
-                    disabled={isLoading || !status.isInitialized || !remaining.canSend}
+                    disabled={isLoading || !status.isInitialized}
                   />
                   <button
                     onClick={handleSubmit}
-                    disabled={isLoading || !input.trim() || !status.isInitialized || !remaining.canSend}
+                    disabled={isLoading || !input.trim() || !status.isInitialized}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-200 disabled:opacity-30"
                     style={{ 
-                      background: input.trim() && !isLoading && remaining.canSend ? 'var(--secondary-color)' : 'transparent',
-                      color: input.trim() && !isLoading && remaining.canSend ? 'white' : 'var(--gray-color)'
+                      background: input.trim() && !isLoading ? 'var(--secondary-color)' : 'transparent',
+                      color: input.trim() && !isLoading ? 'white' : 'var(--gray-color)'
                     }}
                   >
                     {isLoading ? (
