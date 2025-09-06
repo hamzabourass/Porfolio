@@ -15,6 +15,20 @@ const ChatComponent = ({ onNavigate }) => {
   const groqService = useRef(new GroqService());
   const contextService = useRef(null);
 
+  // ADD MOBILE DETECTION
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   useEffect(() => {
     const success = groqService.current.initialize();
     if (success) {
@@ -185,299 +199,326 @@ const ChatComponent = ({ onNavigate }) => {
   ];
 
   return (
-    <div className="fixed bottom-6 right-6 z-50" style={{ fontFamily: 'var(--font-base)' }}>
-      {/* Chat Toggle Button */}
-      {!isOpen && (
+    <>
+      {/* Chat Toggle Button - Always Visible */}
+      <div className="fixed bottom-6 right-6 z-50">
         <div className="relative">
-          <div className="absolute inset-0 animate-ping rounded-full opacity-20" style={{ backgroundColor: 'var(--secondary-color)' }}></div>
+          {!isOpen && (
+            <div className="absolute inset-0 animate-ping rounded-full opacity-20" style={{ backgroundColor: 'var(--secondary-color)' }}></div>
+          )}
           
           <button
-            onClick={() => setIsOpen(true)}
-            className="relative w-16 h-16 rounded-full shadow-2xl transition-all duration-500 hover:scale-110 flex items-center justify-center group overflow-hidden"
+            onClick={() => setIsOpen(!isOpen)}
+            className={`relative ${isMobile ? 'w-14 h-14' : 'w-16 h-16'} rounded-full shadow-2xl transition-all duration-500 hover:scale-110 flex items-center justify-center group overflow-hidden`}
             style={{ 
               background: `linear-gradient(135deg, var(--secondary-color) 0%, #4c63d2 100%)`,
-              boxShadow: '0 20px 40px rgba(49, 59, 172, 0.3)'
+              boxShadow: '0 20px 40px rgba(49, 59, 172, 0.3)',
+              fontFamily: 'var(--font-base)'
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <Sparkles className="absolute top-2 right-2 h-3 w-3 text-white/60 animate-pulse" />
-            <MessageSquare className="h-7 w-7 text-white relative z-10 group-hover:scale-110 transition-transform duration-200" />
+            {!isOpen && (
+              <Sparkles className={`absolute ${isMobile ? 'top-1.5 right-1.5 h-2.5 w-2.5' : 'top-2 right-2 h-3 w-3'} text-white/60 animate-pulse`} />
+            )}
+            {isOpen ? (
+              <X className={`${isMobile ? 'h-6 w-6' : 'h-7 w-7'} text-white relative z-10 group-hover:scale-110 transition-transform duration-200`} />
+            ) : (
+              <MessageSquare className={`${isMobile ? 'h-6 w-6' : 'h-7 w-7'} text-white relative z-10 group-hover:scale-110 transition-transform duration-200`} />
+            )}
           </button>
         </div>
-      )}
+      </div>
 
       {/* Chat Window */}
       {isOpen && (
         <div 
-          className="w-[420px] h-[650px] rounded-3xl shadow-2xl border overflow-hidden backdrop-blur-xl"
-          style={{ 
-            background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fc 100%)',
-            borderColor: 'rgba(0, 0, 0, 0.05)',
-            boxShadow: '0 32px 64px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8)',
-            animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}
+          className={`fixed z-40 ${
+            isMobile 
+              ? 'inset-0' 
+              : 'bottom-24 right-6'
+          }`}
+          style={{ fontFamily: 'var(--font-base)' }}
         >
-          {/* Header */}
           <div 
-            className="p-5 relative overflow-hidden border-b"
+            className={`${
+              isMobile 
+                ? 'w-full h-full' 
+                : 'w-[420px] h-[650px]'
+            } ${
+              isMobile ? '' : 'rounded-3xl'
+            } shadow-2xl border overflow-hidden backdrop-blur-xl`}
             style={{ 
-              background: 'rgba(255, 255, 255, 0.95)',
-              borderColor: 'rgba(0, 0, 0, 0.06)',
-              backdropFilter: 'blur(20px)'
+              background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fc 100%)',
+              borderColor: 'rgba(0, 0, 0, 0.05)',
+              boxShadow: '0 32px 64px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8)',
+              animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div 
-                  className="p-2.5 rounded-2xl relative overflow-hidden"
-                  style={{ 
-                    background: `linear-gradient(135deg, var(--secondary-color) 0%, #4c63d2 100%)`,
-                    boxShadow: '0 8px 16px rgba(49, 59, 172, 0.2)'
-                  }}
-                >
-                  <Bot className="h-6 w-6 text-white relative z-10" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg tracking-tight" style={{ color: 'var(--black-color)' }}>
-                    Hamza's Assistant
-                  </h3>
-                  <div className="flex items-center space-x-2 mt-0.5">
-                    <div className={`w-2 h-2 rounded-full ${status.isInitialized ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                    <span className="text-xs" style={{ color: 'var(--gray-color)' }}>
-                      {status.isInitialized ? 'Active' : 'Connecting...'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
-                style={{ color: 'var(--gray-color)' }}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Messages Container */}
-          <div className="flex flex-col h-[calc(650px-120px)]">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 enhanced-scrollbar" style={{ background: '#f8f9fc' }}>
-              {messages.length === 0 && (
-                <div className="text-center space-y-6 py-8">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 mb-4">
-                    <Bot className="h-10 w-10" style={{ color: 'var(--secondary-color)' }} />
+            {/* Header */}
+            <div 
+              className={`${isMobile ? 'px-4 py-4' : 'p-5'} relative overflow-hidden border-b`}
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.95)',
+                borderColor: 'rgba(0, 0, 0, 0.06)',
+                backdropFilter: 'blur(20px)'
+              }}
+            >
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div 
+                    className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-2xl relative overflow-hidden`}
+                    style={{ 
+                      background: `linear-gradient(135deg, var(--secondary-color) 0%, #4c63d2 100%)`,
+                      boxShadow: '0 8px 16px rgba(49, 59, 172, 0.2)'
+                    }}
+                  >
+                    <Bot className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-white relative z-10`} />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-2 text-xl" style={{ color: 'var(--black-color)' }}>
-                      Hi! I'm here to help 👋
-                    </h4>
-                    <p className="text-sm mb-6" style={{ color: 'var(--gray-color)' }}>
-                      Ask me anything about Hamza's experience, projects, or skills.
-                    </p>
-                    
-                    {/* Quick Action Buttons */}
-                    <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
-                      {quickPrompts.map((prompt, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleQuickPrompt(prompt)}
-                          className="p-3 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] border bg-white hover:shadow-md"
-                          style={{
-                            borderColor: 'rgba(0, 0, 0, 0.08)',
-                            color: 'var(--black-color)'
-                          }}
-                        >
-                          {prompt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  style={{ animation: `fadeIn 0.3s ease-out` }}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="flex items-end mr-2">
-                      <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ 
-                          background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                        }}
-                      >
-                        <Bot className="h-4 w-4" style={{ color: 'var(--secondary-color)' }} />
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className={`group relative max-w-[320px]`}>
-                    <div
-                      className={`px-4 py-3 rounded-2xl ${
-                        message.role === 'user' 
-                          ? 'rounded-br-sm' 
-                          : 'rounded-bl-sm'
-                      } ${message.isError ? 'border-yellow-200' : ''}`}
-                      style={{
-                        background: message.role === 'user' 
-                          ? 'linear-gradient(135deg, var(--secondary-color) 0%, #4c63d2 100%)'
-                          : message.isError 
-                            ? '#fefce8' // Light yellow background for errors
-                            : 'white',
-                        color: message.role === 'user' 
-                          ? 'white'
-                          : message.isError
-                            ? '#92400e' // Brown text for errors
-                            : 'var(--black-color)',
-                        boxShadow: message.role === 'user'
-                          ? '0 4px 12px rgba(49, 59, 172, 0.15)'
-                          : '0 2px 8px rgba(0, 0, 0, 0.06)',
-                        border: message.role === 'assistant' ? '1px solid rgba(0, 0, 0, 0.06)' : 'none'
-                      }}
-                    >
-                      {/* Category badges - don't show for error messages */}
-                      {message.role === 'assistant' && message.categories && !message.isError && (
-                        renderCategoryBadges(message.categories)
-                      )}
-                      
-                      <div className="text-sm leading-relaxed">
-                        {message.role === 'user' ? (
-                          <span className="whitespace-pre-wrap">{message.content}</span>
-                        ) : (
-                          <div className="prose prose-sm max-w-none">
-                            <MarkdownMessage 
-                              content={message.content} 
-                              isUser={message.role === 'user'} 
-                            />
-                            
-                            {/* Navigation suggestions - don't show for error messages */}
-                            {message.categories && !message.isError && getNavigationSuggestion(message.categories).length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-gray-100">
-                                <div className="text-xs text-gray-500 mb-2 font-medium">Explore More:</div>
-                                <div className="flex flex-wrap gap-2">
-                                  {getNavigationSuggestion(message.categories).map((suggestion, idx) => (
-                                    <button
-                                      key={idx}
-                                      onClick={() => handleNavigation(suggestion.section)}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 hover:shadow-sm hover:scale-[1.02]"
-                                      style={{
-                                        borderColor: 'var(--secondary-color)',
-                                        color: 'var(--secondary-color)',
-                                        background: 'rgba(49, 59, 172, 0.05)'
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.target.style.background = 'var(--secondary-color)';
-                                        e.target.style.color = 'white';
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.target.style.background = 'rgba(49, 59, 172, 0.05)';
-                                        e.target.style.color = 'var(--secondary-color)';
-                                      }}
-                                    >
-                                      {suggestion.icon}
-                                      {suggestion.label}
-                                      <ArrowRight className="h-3 w-3" />
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Timestamp on hover */}
-                    <div className={`absolute -bottom-5 ${message.role === 'user' ? 'right-0' : 'left-0'} 
-                      opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
-                      <span className="text-xs text-gray-400">
-                        {message.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'} tracking-tight`} style={{ color: 'var(--black-color)' }}>
+                      Hamza's Assistant
+                    </h3>
+                    <div className="flex items-center space-x-2 mt-0.5">
+                      <div className={`w-2 h-2 rounded-full ${status.isInitialized ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                      <span className="text-xs" style={{ color: 'var(--gray-color)' }}>
+                        {status.isInitialized ? 'Active' : 'Connecting...'}
                       </span>
                     </div>
                   </div>
-                  
-                  {message.role === 'user' && (
-                    <div className="flex items-end ml-2">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-gray-600" />
-                      </div>
-                    </div>
-                  )}
                 </div>
-              ))}
-              
-              {/* Typing Indicator */}
-              {(isLoading || isTyping) && (
-                <div className="flex justify-start" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                  <div className="flex items-end mr-2">
-                    <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)' }}
-                    >
-                      <Bot className="h-4 w-4" style={{ color: 'var(--secondary-color)' }} />
-                    </div>
-                  </div>
-                  <div 
-                    className="px-4 py-3 rounded-2xl rounded-bl-sm bg-white shadow-sm border"
-                    style={{ borderColor: 'rgba(0, 0, 0, 0.06)' }}
+                {/* Only show close button in header on desktop */}
+                {!isMobile && (
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                    style={{ color: 'var(--gray-color)' }}
                   >
-                    <div className="flex space-x-1.5">
-                      {[0, 1, 2].map((i) => (
-                        <div 
-                          key={i}
-                          className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"
-                          style={{ animationDelay: `${i * 0.15}s` }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Input Area */}
-            <div className="p-4 border-t bg-white" style={{ borderColor: 'rgba(0, 0, 0, 0.06)' }}>
-              <div className="flex items-center space-x-2">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder={status.isInitialized ? "Type your message..." : "API key required..."}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl outline-none transition-all duration-200 text-sm border-2 bg-gray-50 focus:bg-white"
-                    style={{ 
-                      borderColor: 'transparent',
-                      color: 'var(--black-color)'
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = 'var(--secondary-color)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = 'transparent';
-                    }}
-                    disabled={isLoading || !status.isInitialized}
-                  />
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isLoading || !input.trim() || !status.isInitialized}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all duration-200 disabled:opacity-30"
-                    style={{ 
-                      background: input.trim() && !isLoading ? 'var(--secondary-color)' : 'transparent',
-                      color: input.trim() && !isLoading ? 'white' : 'var(--gray-color)'
-                    }}
+            {/* Messages Container */}
+            <div className={`flex flex-col ${isMobile ? 'h-[calc(100vh-140px)]' : 'h-[calc(650px-120px)]'}`}>
+              {/* Messages */}
+              <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-4'} space-y-4 enhanced-scrollbar`} style={{ background: '#f8f9fc' }}>
+                {messages.length === 0 && (
+                  <div className={`text-center space-y-6 ${isMobile ? 'py-6' : 'py-8'}`}>
+                    <div className={`inline-flex items-center justify-center ${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 mb-4`}>
+                      <Bot className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'}`} style={{ color: 'var(--secondary-color)' }} />
+                    </div>
+                    <div>
+                      <h4 className={`font-semibold mb-2 ${isMobile ? 'text-lg' : 'text-xl'}`} style={{ color: 'var(--black-color)' }}>
+                        Hi! I'm here to help 👋
+                      </h4>
+                      <p className={`${isMobile ? 'text-xs px-2' : 'text-sm'} mb-6`} style={{ color: 'var(--gray-color)' }}>
+                        Ask me anything about Hamza's experience, projects, or skills.
+                      </p>
+                      
+                      {/* Quick Action Buttons */}
+                      <div className={`grid ${isMobile ? 'grid-cols-1 gap-2 max-w-full px-4' : 'grid-cols-2 gap-2 max-w-sm'} mx-auto`}>
+                        {quickPrompts.map((prompt, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleQuickPrompt(prompt)}
+                            className={`${isMobile ? 'p-2.5 text-xs' : 'p-3 text-sm'} rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border bg-white hover:shadow-md text-left`}
+                            style={{
+                              borderColor: 'rgba(0, 0, 0, 0.08)',
+                              color: 'var(--black-color)'
+                            }}
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    style={{ animation: `fadeIn 0.3s ease-out` }}
                   >
-                    {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Send className="h-5 w-5" />
+                    {message.role === 'assistant' && (
+                      <div className="flex items-end mr-2">
+                        <div 
+                          className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} rounded-full flex items-center justify-center flex-shrink-0`}
+                          style={{ 
+                            background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                          }}
+                        >
+                          <Bot className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} style={{ color: 'var(--secondary-color)' }} />
+                        </div>
+                      </div>
                     )}
-                  </button>
+                    
+                    <div className={`group relative ${isMobile ? 'max-w-[280px]' : 'max-w-[320px]'}`}>
+                      <div
+                        className={`${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'} rounded-2xl ${
+                          message.role === 'user' 
+                            ? 'rounded-br-sm' 
+                            : 'rounded-bl-sm'
+                        } ${message.isError ? 'border-yellow-200' : ''}`}
+                        style={{
+                          background: message.role === 'user' 
+                            ? 'linear-gradient(135deg, var(--secondary-color) 0%, #4c63d2 100%)'
+                            : message.isError 
+                              ? '#fefce8'
+                              : 'white',
+                          color: message.role === 'user' 
+                            ? 'white'
+                            : message.isError
+                              ? '#92400e'
+                              : 'var(--black-color)',
+                          boxShadow: message.role === 'user'
+                            ? '0 4px 12px rgba(49, 59, 172, 0.15)'
+                            : '0 2px 8px rgba(0, 0, 0, 0.06)',
+                          border: message.role === 'assistant' ? '1px solid rgba(0, 0, 0, 0.06)' : 'none'
+                        }}
+                      >
+                        {/* Category badges */}
+                        {message.role === 'assistant' && message.categories && !message.isError && (
+                          renderCategoryBadges(message.categories)
+                        )}
+                        
+                        <div className={`${isMobile ? 'text-xs' : 'text-sm'} leading-relaxed`}>
+                          {message.role === 'user' ? (
+                            <span className="whitespace-pre-wrap">{message.content}</span>
+                          ) : (
+                            <div className="prose prose-sm max-w-none">
+                              <MarkdownMessage 
+                                content={message.content} 
+                                isUser={message.role === 'user'} 
+                              />
+                              
+                              {/* Navigation suggestions */}
+                              {message.categories && !message.isError && getNavigationSuggestion(message.categories).length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                  <div className="text-xs text-gray-500 mb-2 font-medium">Explore More:</div>
+                                  <div className={`flex ${isMobile ? 'flex-col gap-1.5' : 'flex-wrap gap-2'}`}>
+                                    {getNavigationSuggestion(message.categories).map((suggestion, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={() => handleNavigation(suggestion.section)}
+                                        className={`flex items-center gap-1.5 ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-1.5 text-xs'} font-medium rounded-lg border transition-all duration-200 hover:shadow-sm hover:scale-[1.02]`}
+                                        style={{
+                                          borderColor: 'var(--secondary-color)',
+                                          color: 'var(--secondary-color)',
+                                          background: 'rgba(49, 59, 172, 0.05)'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.target.style.background = 'var(--secondary-color)';
+                                          e.target.style.color = 'white';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.target.style.background = 'rgba(49, 59, 172, 0.05)';
+                                          e.target.style.color = 'var(--secondary-color)';
+                                        }}
+                                      >
+                                        {suggestion.icon}
+                                        {suggestion.label}
+                                        <ArrowRight className="h-3 w-3" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Timestamp on hover */}
+                      <div className={`absolute -bottom-5 ${message.role === 'user' ? 'right-0' : 'left-0'} 
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+                        <span className="text-xs text-gray-400">
+                          {message.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {message.role === 'user' && (
+                      <div className="flex items-end ml-2">
+                        <div className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0`}>
+                          <User className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-gray-600`} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {/* Typing Indicator */}
+                {(isLoading || isTyping) && (
+                  <div className="flex justify-start" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                    <div className="flex items-end mr-2">
+                      <div 
+                        className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} rounded-full flex items-center justify-center`}
+                        style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)' }}
+                      >
+                        <Bot className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} style={{ color: 'var(--secondary-color)' }} />
+                      </div>
+                    </div>
+                    <div 
+                      className={`${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'} rounded-2xl rounded-bl-sm bg-white shadow-sm border`}
+                      style={{ borderColor: 'rgba(0, 0, 0, 0.06)' }}
+                    >
+                      <div className="flex space-x-1.5">
+                        {[0, 1, 2].map((i) => (
+                          <div 
+                            key={i}
+                            className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"
+                            style={{ animationDelay: `${i * 0.15}s` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input Area */}
+              <div className={`${isMobile ? 'p-3' : 'p-4'} border-t bg-white`} style={{ borderColor: 'rgba(0, 0, 0, 0.06)' }}>
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder={status.isInitialized ? "Type your message..." : "API key required..."}
+                      className={`w-full ${isMobile ? 'px-3 py-2.5 pr-10 text-xs' : 'px-4 py-3 pr-12 text-sm'} rounded-2xl outline-none transition-all duration-200 border-2 bg-gray-50 focus:bg-white`}
+                      style={{ 
+                        borderColor: 'transparent',
+                        color: 'var(--black-color)'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = 'var(--secondary-color)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'transparent';
+                      }}
+                      disabled={isLoading || !status.isInitialized}
+                    />
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isLoading || !input.trim() || !status.isInitialized}
+                      className={`absolute ${isMobile ? 'right-1.5 top-1/2' : 'right-2 top-1/2'} -translate-y-1/2 ${isMobile ? 'p-1.5' : 'p-2'} rounded-xl transition-all duration-200 disabled:opacity-30`}
+                      style={{ 
+                        background: input.trim() && !isLoading ? 'var(--secondary-color)' : 'transparent',
+                        color: input.trim() && !isLoading ? 'white' : 'var(--gray-color)'
+                      }}
+                    >
+                      {isLoading ? (
+                        <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} border-2 border-gray-400 border-t-transparent rounded-full animate-spin`} />
+                      ) : (
+                        <Send className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -551,8 +592,19 @@ const ChatComponent = ({ onNavigate }) => {
           overflow-x: auto;
           margin-bottom: 0.75em;
         }
+
+        /* Mobile-specific prose adjustments */
+        @media (max-width: 768px) {
+          .prose h1, .prose h2, .prose h3 {
+            font-size: 1em;
+          }
+          
+          .prose code {
+            font-size: 0.8em;
+          }
+        }
       `}</style>
-    </div>
+    </>
   );
 };
 
